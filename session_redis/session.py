@@ -18,6 +18,7 @@ _logger = logging.getLogger(__name__)
 
 
 class RedisSessionStore(SessionStore):
+
     """SessionStore that saves session to redis"""
 
     def __init__(
@@ -124,3 +125,15 @@ class RedisSessionStore(SessionStore):
         expiration.
         """
         return None
+
+    def get_missing_session_identifiers(self, session_ids):
+        """Return the session ids from the input list that are not present in Redis."""
+        if not session_ids:
+            return []
+        # Build the redis keys for all session ids
+        keys = [self.build_key(sid) for sid in session_ids]
+        # Use mget to check which exist
+        existing = self.redis.mget(keys)
+        # mget returns None for missing keys
+        missing = [sid for sid, value in zip(session_ids, existing) if value is None]
+        return missing
